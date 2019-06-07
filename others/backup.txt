@@ -1,0 +1,1780 @@
+import controlP5.*;
+import java.util.HashSet;
+import java.util.Map;
+import java.net.URLEncoder;
+import java.net.*;
+import java.io.*;
+//import javax.xml.parsers.DocumentBuilder;
+//import javax.xml.parsers.DocumentBuilderFactory;
+//import org.w3c.dom.Document;
+//import javafx.scene.web.WebView;
+
+ControlP5 zero, one, two, three, four, five, six, seven, eight, nine; 
+ControlP5 list;
+Canvas intro, loading;
+PFont DisplayFontS, DisplayFontM, DisplayFontL, InputFont;
+PFont allfontSS, allfontS, allfontM, allfontL;
+float timer;
+Boolean update = true;
+int state, pState;
+
+
+//list
+boolean listB = false;
+
+//one
+boolean oneB = false;
+
+//two
+boolean twoB = false;
+
+//three
+boolean threeB = false;
+
+//four
+ArrayList<Artist> artist;
+boolean fourB = false;
+
+//five
+Artist currentartist;
+VidThread[] v;
+boolean fiveB = false;
+
+//six
+boolean sixB = false;
+int sixMsg;
+
+//three and six
+ArrayList<Artist> likes;
+ArrayList<Artist> discover;
+
+//discovery
+HashMap<String, Integer> tagOverall;
+HashMap<String, Integer> topFiveTags;
+ArrayList<String> discovername;
+discoverThread[] d;
+
+
+
+
+
+
+
+String s;
+boolean BZero = true, BOne = true, BTwo = false, BFour = false, BFive = false, BSix = false;
+
+String username; //holds name input
+String words; //holds search terms
+
+//search and display of artist
+
+ArrayList<Track> track;
+HashMap<String, Integer> tag;
+
+//display of discovered artist
+Artist Dartist;
+ArrayList<Track> Dtrack;
+HashMap<String, Integer> Dtag;
+
+int ArtistSize;
+PImage img;
+JSONArray jsonAr, jsonArTr, jsonArG;
+
+
+String currentartistname;
+
+
+
+
+
+//.hideScrollbar() 
+//URLEncoder.encode(artname, "UTF-8");
+
+
+/*Euterpe, named after the greek goddess,
+ * the muse of music/lyric poetry
+ *
+ */
+
+void setup() {
+  size(696, 696);
+  background(255);
+
+  createAllFonts();
+  initialize();
+}
+
+
+
+void draw() {
+  background(255);
+  update();
+
+  ////toggle to start at 1st
+  //timer = millis();
+  //////println(timer);
+  //if (state==0 && timer>3500) {
+  //  state = 1;
+  //  update = true;
+  //}
+
+  if (state == 7) {
+    state = 8;
+    update = true;
+  }
+}
+
+
+
+
+
+
+void eight() {
+  hideAll();
+  discover();
+  background(255); 
+
+  eight.setFont(allfontSS);
+
+  int side = 35;
+
+  //list of artist matches
+  Textarea matches;
+  ScrollableList matches2;
+
+  ArrayList<String> newArtists = new ArrayList<String>();
+  for (String s : discovername) {
+    newArtists.add(s);
+  }
+
+  ArrayList newArtists2 = new ArrayList<String>();
+
+  //remove artists from likes list
+  for (String s : newArtists) { 
+    boolean same = false;
+
+    for (Artist a : likes) {
+      //print("artist name :" + s);
+      //println(" compared to:" + a.name);
+      if (s.equals(a.name)) {
+        same = true;
+        break;
+      }
+    }
+    if (!same) {
+      newArtists2.add(s);
+    }
+  }
+  //remove duplicates
+  HashSet<String> newArtists3 = new HashSet<String>(newArtists2);
+  newArtists = new ArrayList<String>();
+  newArtists.addAll(newArtists3);
+
+  matches = eight.addTextarea("RecommendedArtists")
+    .setPosition(side, 100)
+    .setSize(300, 40)
+    .setColor(color(255, 125, 0))
+    .setFont(DisplayFontM)
+    .setColorBackground(255)
+    .setColorForeground(color(255, 100))
+    .setText("Recommended Artists")
+    .hideScrollbar() 
+    ;
+
+  matches2 = eight.addScrollableList("RecommendedArtists2")
+    .setPosition(side, 135)
+    .setSize((width/2)-side, 385)
+    .setBarHeight(0)
+    .setItemHeight(35)
+    .addItems(newArtists)
+    .setColorActive(color(200, 200, 200))
+    .setColorValue(color(255, 90, 0))
+    .setColorBackground(color(225, 225, 225))
+    .setColorForeground(color(200, 200, 200))
+    .setType(ControlP5.LIST)
+    .setBarVisible(false)
+    ;
+
+  eight.addTextarea("Tip")
+    .setPosition(side + ((width-side)/2), 135)
+    .setSize((width/2)-side, 400)
+    .setColor(color(255, 125, 0))
+    .setFont(DisplayFontM)
+    .setColorBackground(255)
+    .setColorForeground(color(255, 100))
+    .setText("Select on an artist to look at their profile."+"\n" +"\n"
+    +"If there is nothing you like, press the return button and add more artists to the mix. This will help in improving recommended artist matches for you.")
+    .hideScrollbar() 
+    ;
+
+
+
+  eight.addButton("back8")
+    .setPosition(0, 658)
+    .setSize(150, 40)
+    .setImage(loadImage("Buttons/back8.png"))
+    ;
+
+
+  eight.show();
+}
+
+void back8() {
+  state = 3;
+  update = true;
+}
+
+//methods for selecting from eight list
+void RecommendedArtists2(int n) {
+  /* request the selected item based on index n */
+  Object o = eight.get(ScrollableList.class, "RecommendedArtists2").getItem(n).get("text");
+  String name = (String) o;
+  println("opening " + name);
+  getArtist(name);
+  state = 9;
+  update();
+}
+
+void nine() {
+
+  hideAll();
+  nine.setFont(allfontS);
+  //artist name and image
+  controlP5.Button artimage;
+  Textarea artname;
+  //Dartist = new Artist("Linkin","unknown.png","1234");
+
+  if (loadImage(Dartist.image) == null) {
+    Dartist.setImage("unknown.png");
+  }
+
+  artimage = nine.addButton("artimage")
+    .setPosition(50, 25)
+    .setSize(174, 174)
+    .setImage(loadImage(Dartist.image))
+    ;
+
+  artname = nine.addTextarea("artname")
+    .setPosition(250, 75)
+    .setSize(300, 40)
+    .setColor(color(255, 125, 0))
+    .setFont(DisplayFontM)
+    .setColorBackground(255)
+    .setColorForeground(color(255, 100))
+    .setText(Dartist.name)
+    .hideScrollbar() 
+    ;
+
+
+  //list of songs
+
+  //song names
+  Textarea topsongs;
+  ScrollableList topsongs2;
+
+  ArrayList artsong = new ArrayList<String>();
+  for (Track t : Dtrack) {
+    artsong.add(t.name);
+  }
+
+
+  topsongs = nine.addTextarea("Top Songs")
+    .setPosition(50, 225)
+    .setSize(300, 40)
+    .setColor(color(255, 125, 0))
+    .setFont(DisplayFontM)
+    .setColorBackground(255)
+    .setColorForeground(color(255, 100))
+    .setText("Top Songs")
+    .hideScrollbar() 
+    ;
+
+  topsongs2 = nine.addScrollableList("Top Songs2")
+    .setPosition(50, 265)
+    .setSize(300, 440)
+    .setBarHeight(0)
+    .setItemHeight(40)
+    .addItems(artsong)
+    .setType(ControlP5.LIST)
+    .setBarVisible(false)
+    ;
+
+  //playcount
+  Textarea playcount;
+  ScrollableList playcount2;
+
+
+  ArrayList songcount = new ArrayList<String>();
+  for (Track t : Dtrack) {
+    songcount.add(t.playcount);
+  }
+
+
+  playcount = nine.addTextarea("Playcount")
+    .setPosition(width-150, 225)
+    .setSize(100, 40)
+    .setColor(color(255, 125, 0))
+    .setFont(DisplayFontM)
+    .setColorBackground(255)
+    .setColorForeground(color(255, 100))
+    .setText("Playcount")
+    .hideScrollbar() 
+    ;
+
+  playcount2 = nine.addScrollableList("Playcount2")
+    .setPosition(width-150, 265)
+    .setSize(100, 440)
+    .setBarHeight(0)
+    .setItemHeight(40)
+    .addItems(songcount)
+    .setType(ControlP5.LIST)
+    .setBarVisible(false)
+    ;
+}
+
+
+
+
+
+//Creates logo screens (Euterpe Logo)
+
+class Screen extends controlP5.Canvas {
+  PImage logo;
+  String logoS;
+  String text;
+
+  public Screen(String img, String text) {
+    logoS = img;
+    this.text = text;
+  }
+  public void setup(PGraphics pg) {
+    logo = loadImage(logoS);
+  }  
+
+  public void update(PApplet p) {
+  }
+
+  public void draw(PGraphics pg) {
+    // intro logo
+    pg.fill(255, 125, 0);
+    pg.image(logo, width/4, height/4);
+    pg.textFont(DisplayFontL);
+    pg.text(text, (width/4), (height/4)+300);
+  }
+}
+
+
+void loadArtist() {
+  currentartistname = currentartist.name;
+  currentartistname = currentartistname.replaceAll("\\s", "%20");
+  loadTracks();
+  loadGenres();
+
+  state = 5;
+  update();
+}
+
+void loadTracks() {
+  String url = "http://ws.audioscrobbler.com/2.0/?method=artist.gettoptracks&artist=" + currentartistname + "&api_key=5f89b5026e6206e9b74b93a117a4ef95&format=json";
+
+  JSONObject json = loadJSONObject(url);
+
+  int TrackSize = json.getJSONObject("toptracks").getJSONArray("track").size();
+  jsonArTr = json.getJSONObject("toptracks").getJSONArray("track");
+  if (TrackSize >10) TrackSize = 10;
+
+  track = new ArrayList<Track>();
+  for (int i=0; i<TrackSize; i++) {
+
+
+    String name = jsonArTr.getJSONObject(i).getString("name");
+    String playcount = jsonArTr.getJSONObject(i).getString("playcount");
+    Track t = new Track(name, playcount, url);
+    track.add(t);
+  }
+  //for (Track t : track) //println(t.name);
+}
+
+void loadGenres() {
+  String url = "http://ws.audioscrobbler.com/2.0/?method=artist.gettopTags&artist=" + currentartistname + "&api_key=5f89b5026e6206e9b74b93a117a4ef95&format=json";
+  JSONObject json = loadJSONObject(url);
+
+  int TagSize = json.getJSONObject("toptags").getJSONArray("tag").size();
+
+
+  jsonArG = json.getJSONObject("toptags").getJSONArray("tag");
+
+  if (TagSize>5) TagSize = 5;
+
+  tag = new HashMap<String, Integer>();
+  for (int i=0; i<TagSize; i++) {
+
+    String name = jsonArG.getJSONObject(i).getString("name");
+    int count = jsonArG.getJSONObject(i).getInt("count");
+
+    tag.put(name, count);
+  }
+}
+
+
+
+void getArtist(String an) {
+
+  //get artist - name,img,id
+
+  String artistname = an;
+  String artistname2 = artistname;
+  try {
+    artistname2  = URLEncoder.encode(artistname, "UTF-8");
+  }
+  catch(Exception e) {
+  }
+
+
+  String url = "http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=" + artistname2 + "&api_key=5f89b5026e6206e9b74b93a117a4ef95&format=json";
+  JSONObject json = loadJSONObject(url);
+
+
+  String id = json.getJSONObject("artist").getString("mbid");
+  String name = json.getJSONObject("artist").getString("name");
+  String imgurl = json.getJSONObject("artist").getJSONArray("image").getJSONObject(2).getString("#text");
+
+  Dartist = new Artist(name, imgurl, id);
+
+
+
+  //get Tracks
+  url = "http://ws.audioscrobbler.com/2.0/?method=artist.gettoptracks&artist=" + artistname2 + "&api_key=5f89b5026e6206e9b74b93a117a4ef95&format=json";
+
+  JSONObject jsonTr = loadJSONObject(url);
+  int TrackSize = jsonTr.getJSONObject("toptracks").getJSONArray("track").size();
+  JSONArray jsonTr2 = jsonTr.getJSONObject("toptracks").getJSONArray("track");
+  if (TrackSize >10) TrackSize = 10;
+
+  Dtrack = new ArrayList<Track>();
+  for (int i=0; i<TrackSize; i++) {
+
+
+    String Trname = jsonTr2.getJSONObject(i).getString("name");
+    String playcount = jsonTr2.getJSONObject(i).getString("playcount");
+    Track t = new Track(Trname, playcount, url);
+    Dtrack.add(t);
+  }
+}
+
+public String yt(String url) {
+
+  String yt = null; 
+  BufferedReader reader;
+
+  String line;
+  String check = "href=\"https://www.youtube.com/watch?";
+
+
+
+  try {
+    URL u = new URL(url);
+    reader = new BufferedReader(new InputStreamReader(u.openStream()));
+    while (reader.readLine()!=null) {
+      line = reader.readLine();
+
+      if (line.contains(check)) {
+        yt = line;
+        break;
+      }
+    }
+
+    int a = yt.lastIndexOf("=");
+    int b = yt.lastIndexOf("\"");
+    yt = yt.substring(a+1, b);
+  }
+
+
+  catch (Exception e) {
+  }
+
+  return yt;
+}
+
+void launchPlayer(String url) {
+  //save file and launch yt vid
+  String[] t = new String[]{url};
+  saveStrings("player/link.txt", t);
+  launch(sketchPath("player/player.jar"));
+}
+
+
+//////////////////////////////////////////////////////////Officially Make classes////////////////////////////////////////////
+
+class Artist {
+  String name;
+  String image;
+  String id;
+  HashMap<String, Integer> tag;
+  ArrayList<Track> track;
+
+  Artist(String n, String im, String id) {
+    name = n;
+    image = im;
+    this.id = id;
+  }
+
+  void setImage(String img) {
+    image = img;
+  }
+
+  void setTag(HashMap<String, Integer> t) {
+    tag = t;
+  }
+
+  void setTracks(ArrayList<Track> tr) {
+    track = tr;
+  }
+
+  String getName() {
+    return name;
+  }
+
+  String getImage() {
+    return image;
+  }
+
+  HashMap<String, Integer> getTags() {
+    return tag;
+  }
+  ArrayList<Track> getTracks() {
+    return track;
+  }
+}
+
+
+class Track {
+  String name;
+  String playcount;
+  String url;
+  String vidurl;
+  Track(String n, String p, String u) {
+    name = n;
+    playcount = p;
+    url = u;
+  }
+
+  String getName() {
+    return name;
+  }
+
+  String getCount() {
+    return playcount;
+  }
+
+  String getUrl() {
+    return url;
+  }
+
+  String getVidUrl() {
+    return vidurl;
+  }
+
+  public void setVidUrl(String vu) {
+    vidurl = vu;
+  }
+}
+
+class miniTag {
+  String name;
+  int count;
+
+  miniTag(String n, int c) {
+    name = n;
+    count = c;
+  }
+
+  String getName() {
+    return name;
+  }
+
+  int getCount() {
+    return count;
+  }
+}
+
+class VidThread extends Thread {
+
+  String vu;
+  Track t;
+
+  public VidThread(Track t) {
+    this.t = t;
+  }
+
+  public void run() {
+    vu = yt(t.getUrl());
+    t.setVidUrl(vu);
+  }
+}
+
+
+class discoverThread extends Thread {
+
+  String s;
+
+  public discoverThread(String s) {
+    this.s = s;
+  }
+
+  public void run() {
+    loadDiscover(s);
+  }
+}
+
+
+
+
+
+
+//////////////////////////////////////////////////////////Officially Make methods////////////////////////////////////////////
+
+ArrayList <Artist> searchArtists(String ArtName) {
+  String query = ArtName;
+  try {
+    query = URLEncoder.encode(query, "UTF-8");
+  }
+  catch(Exception e) {
+  }
+
+  String url = "http://ws.audioscrobbler.com/2.0/?method=artist.search&artist=" + query + "&api_key=5f89b5026e6206e9b74b93a117a4ef95&format=json&limit=50";
+  JSONObject json = loadJSONObject(url);
+  int ArtSize = json.getJSONObject("results").getJSONObject("artistmatches").getJSONArray("artist").size();
+  JSONArray jsonA = json.getJSONObject("results").getJSONObject("artistmatches").getJSONArray("artist");
+
+  if (ArtSize >6) ArtSize = 6;
+  ArrayList <Artist> Art = new ArrayList<Artist>();
+
+  int i = 0;
+
+  while (i<ArtSize) {
+
+    String id = jsonA.getJSONObject(i).getString("mbid");
+    String name = jsonA.getJSONObject(i).getString("name");
+    String imgurl = jsonA.getJSONObject(i).getJSONArray("image").getJSONObject(2).getString("#text"); 
+
+    Art.add(new Artist(name, imgurl, id));
+    i++;
+  }
+
+  //for (Artist a : Art) println("Name:"+a.name+ "  Id:" + a.id + "  Imgurl:" + a.image) ;
+
+  return Art;
+}
+
+
+ArrayList <Track> DloadTracks(String ArtName) {
+  String query = ArtName;
+  try {
+    query = URLEncoder.encode(query, "UTF-8");
+  }
+  catch(Exception e) {
+  }
+
+  String url = "http://ws.audioscrobbler.com/2.0/?method=artist.gettoptracks&artist=" + query + "&api_key=5f89b5026e6206e9b74b93a117a4ef95&format=json";
+  JSONObject json = loadJSONObject(url);
+  int TrackSize = json.getJSONObject("toptracks").getJSONArray("track").size();
+  JSONArray jsonA = json.getJSONObject("toptracks").getJSONArray("track");
+
+  if (TrackSize >10) TrackSize = 10;
+
+  ArrayList<Track> ArtTrack = new ArrayList<Track>();
+  for (int i=0; i<TrackSize; i++) {
+
+    String name = jsonA.getJSONObject(i).getString("name");
+    String vUrl = jsonA.getJSONObject(i).getString("url");
+    String playcount = jsonA.getJSONObject(i).getString("playcount");
+    Track t = new Track(name, playcount, vUrl);
+    ArtTrack.add(t);
+  }
+  //for (Track t : ArtTrack) println(t.name);
+  return ArtTrack;
+}
+
+
+
+
+HashMap<String, Integer> DloadGenres(String ArtName) {
+
+  String query = ArtName;
+  try {
+    query = URLEncoder.encode(query, "UTF-8");
+  }
+  catch(Exception e) {
+  }
+
+
+  String url = "http://ws.audioscrobbler.com/2.0/?method=artist.gettopTags&artist=" + query + "&api_key=5f89b5026e6206e9b74b93a117a4ef95&format=json";
+  JSONObject json = loadJSONObject(url);
+
+  int TagSize = json.getJSONObject("toptags").getJSONArray("tag").size();
+  JSONArray jsonA = json.getJSONObject("toptags").getJSONArray("tag");
+
+  if (TagSize>5) TagSize = 5;
+
+  HashMap<String, Integer> ArtTag = new HashMap<String, Integer>();
+  for (int i=0; i<TagSize; i++) {
+
+    String name = jsonA.getJSONObject(i).getString("name");
+    int count = jsonA.getJSONObject(i).getInt("count");
+
+    ArtTag.put(name, count);
+  }
+
+  //for (Map.Entry me : ArtTag.entrySet()) println("Name:" + me.getKey() + " Count:" + me.getValue());
+  return ArtTag;
+}
+
+Artist GetArtist(String ArtName) {//get artist - name,img,id
+
+  String query = ArtName;
+  try {
+    query = URLEncoder.encode(query, "UTF-8");
+  }
+  catch(Exception e) {
+  }
+
+  String url = "http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=" + query + "&api_key=5f89b5026e6206e9b74b93a117a4ef95&format=json";
+  JSONObject json = loadJSONObject(url);
+
+  String id = json.getJSONObject("artist").getString("mbid");
+  String name = json.getJSONObject("artist").getString("name");
+  String imgurl = json.getJSONObject("artist").getJSONArray("image").getJSONObject(2).getString("#text");
+
+  Artist Art = new Artist(name, imgurl, id);
+
+
+  return Art;
+}
+
+Artist DloadArtist(Artist Art) {
+
+  String ArtName = Art.getName();
+
+  String query = ArtName;
+
+  Art.setTracks(DloadTracks(query));//load tracks
+  Art.setTag(DloadGenres(query));//load genre
+
+  //println("Name:" + Art.name + " imgurl:" +  Art.image + " Id:" + Art.id);
+  //for (Track t : Art.track) println("Track name:" + t.name + "\n" + "Playcount:" + t.playcount);
+  //for (Map.Entry me : Art.tag.entrySet()) println("Genre:" + me.getKey() + " Count:" + me.getValue());
+  return Art;
+}
+
+////////////////////////////////////Display Methods///////////////////////////////////////
+void createAllFonts() {
+  DisplayFontS = createFont("big_noodle_titling.ttf", 15, true);
+  DisplayFontM = createFont("big_noodle_titling.ttf", 23, true);
+  DisplayFontL = createFont("big_noodle_titling.ttf", 40, true);
+  InputFont = createFont("big_noodle_titling.ttf", 25, true);
+  allfontS = createFont("unifont.ttf", 20, true);
+  allfontSS = createFont("unifont.ttf", 18, true);
+  allfontM = createFont("unifont.ttf", 30, true);
+  allfontL = createFont("unifont.ttf", 40, true);
+}
+
+void initialize() {
+  list = new ControlP5(this);  
+
+  zero = new ControlP5(this);
+  one = new ControlP5(this); 
+  two = new ControlP5(this);
+  three = new ControlP5(this);
+  four = new ControlP5(this);
+  five = new ControlP5(this);
+  six = new ControlP5(this);
+  seven = new ControlP5(this);
+  eight = new ControlP5(this);
+  nine = new ControlP5(this);
+  hideAll();
+  likes = new ArrayList<Artist>();
+  discover = new ArrayList<Artist>();
+
+
+  state = 3; //toggle this to test different states
+  update();
+}
+
+
+void hideAll() {
+  list.hide();
+
+  zero.hide();
+  one.hide();
+  two.hide();
+  three.hide();
+  four.hide();
+  five.hide();
+  six.hide();
+  seven.hide();
+  eight.hide();
+
+  listB = false;
+  oneB = false;
+  twoB = false;
+  fourB = false;
+  fiveB = false;
+  sixB = false;
+  background(255);
+}
+
+void update() {  
+
+  if (update) {
+    println("State is:" + state);
+    update = false;
+    switch(state) {
+
+    case 99:
+      lists();
+      break;
+
+    case 0: 
+      zero();
+      break;
+
+    case 1: 
+      one();
+      break;
+
+    case 2: 
+      two();
+      break;
+
+    case 3: 
+      three();
+      break;
+
+    case 4: 
+      four();
+      break;
+
+    case 5: 
+      five();
+      break;
+
+    case 6: 
+      six();
+      break;
+
+    case 7: 
+      seven();
+      break;
+
+    case 8: 
+      eight();
+      break;
+
+    case 9: 
+      nine();
+      break;
+    }
+  }
+}
+
+
+//listener
+void controlEvent(ControlEvent theEvent) {
+  if (theEvent.isAssignableFrom(Textfield.class)) {
+    if (state == 2) {
+
+      username = theEvent.getStringValue();
+      state = 3;
+      update = true;
+    }
+
+    if (state == 3) {
+      String songinput = theEvent.getStringValue();
+      artist = searchArtists(songinput);
+      state = 4;
+      update = true;
+    }
+  }
+
+  if (state == 4) {
+    if (fourB) {
+      if (theEvent.getController().getName().startsWith("img")) {
+        int i = (int) theEvent.getController().getValue();
+        println("test:" + artist.get(i).name);
+        currentartist = artist.get(i);
+        currentartist = DloadArtist(currentartist);
+        state = 5;
+        update = true;
+
+        //println("Name:" + Art.name + " imgurl:" +  Art.image + " Id:" + Art.id);
+        //for (Track t : Art.track) println("Track name:" + t.name + "\n" + "Playcount:" + t.playcount);
+        //for (Map.Entry me : Art.tag.entrySet()) println("Genre:" + me.getKey() + " Count:" + me.getValue());
+      }
+    }
+  }
+
+  if (state == 5) { 
+    if (fiveB) {
+      if (theEvent.getController().getName().startsWith("player")) {
+        int i = (int) theEvent.getController().getValue();
+        String url = currentartist.getTracks().get(i).getVidUrl();
+        if (url !=null) launchPlayer(url);
+      }
+    }
+  }
+}
+
+
+
+
+
+
+//Intro screen
+void zero() { 
+  intro = new Screen("Logos/EuterpeLogo.png", "Euterpe");
+  intro.pre();
+  zero.addCanvas(intro);
+
+  //ArrayList l = new ArrayList<String>();
+
+  ////test url
+  //String a="https://www.last.fm/music/Sum+41/_/Pieces";
+
+
+
+  //for (int i = 0; i<10; i++) {
+  //  yt(a);
+  //}
+
+
+
+
+  zero.show();
+}
+
+//Welcome message
+void one() { 
+  hideAll();
+  Textarea welcome, welcome2;
+  welcome = one.addTextarea("welcome")
+    .setPosition(width/5, height/8)
+    .setSize(300, 100)
+    .hideScrollbar() 
+
+    .setLineHeight(32)
+    .setColor(color(255, 125, 0))
+    .setFont(DisplayFontL)
+    .setColorBackground(255)
+    .setColorForeground(color(255, 100))
+    .setText("Welcome to Euterpe");
+  ;
+
+  welcome2 = one.addTextarea("welcome2")
+    .setPosition(width/5, 75+(height/8))
+    .setSize(width, height/4)
+    .hideScrollbar() 
+
+    .setLineHeight(32)
+    .setColor(color(255, 125, 0))
+    .setFont(DisplayFontM)
+    .setColorBackground(255)
+    .setColorForeground(color(255, 100))
+    .setText("Euterpe is a song artist recommender, created for a UOL" +"\n" +
+    "coursework project. It is named after the Greek Goddess" +"\n" +
+    "and muse of music/lyrical poetry, Euterpe. Euterpe is" +"\n" +
+    "powered by the Last.fm database and a very simple " +"\n" +
+    "recommender algorithm of my own design. So go ahead, " +"\n" +
+    "give it a try. Who knows, maybe you'll find some new bands " +"\n" +
+    "that you just might like.")
+
+    ;
+
+
+  one.addButton("one1")
+    .setValue(0)
+    .setPosition(175, 350)
+    .setSize(150, 40)
+    .setImage(loadImage("Buttons/1b1.png"));
+  ;
+
+  one.addButton("one2")
+    .setValue(0)
+    .setPosition(350, 350)
+    .setSize(150, 40)
+    .setImage(loadImage("Buttons/1b2.png"));
+  ;
+
+  one.show();
+
+  oneB = true;
+}
+
+public void one1() {
+  if (oneB) {
+    state = 2;
+    update = true;
+  }
+}
+
+public void one2() {
+  if (oneB) {
+    exit();
+  }
+}
+
+//User name input
+void two() { 
+  hideAll();
+
+  two.addTextarea("NameInput1")
+    .setPosition(width/4, height/4)
+    .setSize(width/2, 300)
+    .setLineHeight(32)
+    .setColor(color(255, 125, 0))
+    .setFont(DisplayFontL)
+    .setText("Please enter your name.");
+
+
+  two.addTextfield("NameInput2")
+    .setPosition(3*(width/8)-25, height/3)
+    .setSize(width/4, 40)
+    .setFocus(true)
+    .setFont(InputFont)
+    .setColor(color(255, 125, 0))
+    ;
+
+
+  two.show();
+  twoB = true;
+}
+
+
+void three() {
+  hideAll();
+  BTwo = false;
+
+
+
+  Textarea start3a, start3b;
+
+  start3a =  three.addTextarea("start3a")
+    .setPosition(width/4, height/8)
+    .setSize(width/2, height/6)
+
+    .setLineHeight(32)
+    .setColor(color(255, 125, 0))
+    .setFont(DisplayFontL)
+    .setText("Alright, " + username + ".")
+    ;
+
+  start3b = three.addTextarea("start3b")
+    .setPosition(width/4, 7*(height/24))
+    .setSize(width/2, height/4)
+
+    .setLineHeight(32)
+    .setColor(color(255, 125, 0))
+    .setFont(DisplayFontL)
+    .setText("Please tell me the name of an artist that you like.")
+    ;
+
+  Textfield tf;
+  tf = three.addTextfield("txtf3")
+    .setPosition(3*(width/8)-50, 13*(height/24))
+    .setSize(200, 40)
+    .setFocus(true)
+    .setFont(InputFont)
+    .setColor(color(255, 125, 0))
+    ;
+
+
+  start3a.moveTo("default");
+  start3b.moveTo("default");
+  tf.moveTo("default");
+
+  //toggle between pages
+  three.addButton("search")
+    .setPosition(width-150-150-10, 0)
+    .setSize(150, 40)
+    .setImage(loadImage("Buttons/search1.png"))
+    ;
+
+  three.addButton("myLists")
+    .setPosition(width-150, 0)
+    .setSize(150, 40)
+    .setImage(loadImage("Buttons/lists0.png"))
+    ;
+
+  threeB = true;
+  three.show();
+}
+
+void four() {//takes approx 5-7secs
+  hideAll();
+  //int x = millis();
+  background(255); 
+
+
+  for (int i =0; i<artist.size(); i++) {
+    four.remove("img" + i);
+    four.remove("artist" + i);
+  }
+
+
+  int imgW = 174;
+  int side = 35;
+  int gap =( width - (2*side) -(3*imgW))/2;
+  int textH = 50;
+
+
+
+  for (int i =0; i<artist.size(); i++) {
+
+    int posX = side+((i%3)*imgW)+((i%3)*gap);
+
+    int posY = 100;
+    if (i>=3) posY +=(imgW + textH);
+    if (loadImage(artist.get(i).image) == null) {
+      Artist art = new Artist(artist.get(i).name, "Logos/unknown.png", artist.get(i).id);
+      artist.set(i, art);
+    }
+
+
+
+    four.addButton("img"+ i)
+      .setValue(i)
+      .setPosition(posX, posY)
+      .setSize(imgW, imgW)
+      .setImage(loadImage(artist.get(i).image))      
+      ;
+
+    four.addTextarea("artist" + i )
+      .setPosition(posX, posY+imgW)
+      .setSize(174, textH)
+      .setLineHeight(32)
+      .setColor(color(255, 125, 0))
+      .setFont(allfontS)
+      .setText(artist.get(i).name)
+      .hideScrollbar() 
+      ;
+  }
+
+
+
+  four.addButton("back4")
+    .setPosition(0, height-40)
+    .setSize(150, 40)
+    .setImage(loadImage("Buttons/back4.png"));
+  ;
+
+  fourB = true;
+  four.show();
+}  
+
+public void back4() {
+  if (fourB) {
+    state = 3;
+    update = true;
+  }
+}
+
+
+
+/////////////////////////////Screen no.5/////////////////////////////
+
+void five() {
+  hideAll();
+  five.setFont(allfontSS);
+
+
+  int imgW = 174;
+  int side = 35;
+  int space = width - (3*side)-imgW;
+  int textH = 50;
+
+  //add
+
+  if (loadImage(currentartist.getImage()) == null) {
+    currentartist.setImage("Logos/unknown.png");
+  }
+
+  Button artimage;
+  Textarea artname;
+  artimage = five.addButton("artimage")
+    .setPosition(side, 25)
+    .setSize(imgW, imgW)
+    .setImage(loadImage(currentartist.getImage()))
+    ;
+
+  artname = five.addTextarea("artname")
+    .setPosition((2*side) + imgW, 25+(imgW/4))
+    .setSize(space, 120)
+    .setColor(color(255, 125, 0))
+    .setFont(DisplayFontL)
+    .setColorForeground(color(255, 100))
+    .setText(currentartist.getName())
+    .hideScrollbar() 
+    ;
+
+  ////genres   
+  Textarea genres;
+  String genre = " · ";
+  for (Map.Entry me : currentartist.getTags().entrySet()) {
+    genre += (me.getKey());
+    genre += " · ";
+  }
+
+  genres = five.addTextarea("Genres")
+    .setPosition((3*side/2) + imgW, 75+(imgW/4))
+    .setSize(space, 100)
+    .setColor(color(255, 125, 0))
+    .setFont(DisplayFontM)
+    .setColorForeground(color(255, 100))
+    .setText(genre)
+    .hideScrollbar() 
+    ;
+
+
+
+
+  //list of songs
+  Textarea topsongs;
+  ScrollableList topsongs2;
+
+  ArrayList artsong = new ArrayList<String>();
+  for (Track t : currentartist.getTracks()) {
+    artsong.add(t.getName());
+  }
+
+
+
+
+  topsongs = five.addTextarea("Top Songs")
+    .setPosition(side, 30+imgW)
+    .setSize(300, 40)
+    .setColor(color(255, 125, 0))
+    .setFont(DisplayFontM)
+    .setColorBackground(255)
+    .setColorForeground(color(255, 100))
+    .setText("Top Songs")
+    .hideScrollbar() 
+    ;
+
+  topsongs2 = five.addScrollableList("Top Songs2")
+    .setPosition(side, 65+imgW)
+    .setSize(width-(2*side)-135, 385)
+    .setBarHeight(0)
+    .setItemHeight(35)
+    .addItems(artsong)
+    .setColorActive(color(200, 200, 200))
+    .setColorValue(color(255, 90, 0))
+    .setColorBackground(color(225, 225, 225))
+    .setColorForeground(color(200, 200, 200))
+    .setType(ControlP5.LIST)
+    .setBarVisible(false)
+    ;
+
+
+  //player
+  int t1 = millis();
+
+  v = new VidThread[10];
+  for (int i =0; i<currentartist.getTracks().size(); i++) {
+    v[i] = new VidThread(currentartist.getTracks().get(i));
+    v[i].start();
+  }
+
+
+  for (VidThread v2 : v) {
+    try {
+      v2.join();
+    }
+    catch(Exception e) {
+    }
+  }
+
+  int t2 = millis();
+  println("Time for songload:" + (t2-t1));
+
+
+
+  for (int i = 0; i<currentartist.getTracks().size(); i++) {
+    String img = "Logos/play.png";
+    if (currentartist.getTracks().get(i).getVidUrl() == null) img = "Logos/play2.png";
+    five.addButton("player"+i)
+      .setValue(i)
+      .setPosition(width-side-135, 65+imgW+(i*35))
+      .setSize(100, 35)
+      .setImage(loadImage(img))
+      ;
+  }
+
+  //playcount
+  Textarea playcount;
+  ScrollableList playcount2;
+
+
+  ArrayList songcount = new ArrayList<String>();
+  for (Track t : currentartist.getTracks()) {
+    songcount.add(t.getCount());
+  }
+
+
+
+  playcount = five.addTextarea("Playcount")
+    .setPosition(width-side-100, 30+imgW)
+    .setSize(100, 40)
+    .setColor(color(255, 125, 0))
+    .setFont(DisplayFontM)
+    .setColorBackground(255)
+    .setColorForeground(color(255, 100))
+    .setText("Playcount")
+    .hideScrollbar() 
+    ;
+
+  playcount2 = five.addScrollableList("Playcount2")
+    .setPosition(width-side-100, 65+imgW)
+    .setSize(100, 385)
+    .setBarHeight(0)
+    .setItemHeight(35)
+    .addItems(songcount)
+    .setColorActive(color(200, 200, 200))
+    .setColorValue(color(255, 90, 0))
+    .setColorBackground(color(225, 225, 225))
+    .setColorForeground(color(200, 200, 200))
+    .setType(ControlP5.LIST)
+    .setBarVisible(false)
+    ;
+
+  //BUTTONS
+  five.addButton("add5")
+    .setPosition(0, height-40-40-10)
+    .setSize(150, 40)
+    .setImage(loadImage("Buttons/add5.png"))
+    ;
+
+  five.addButton("back5")
+    .setPosition(0, height-40)
+    .setSize(150, 40)
+    .setImage(loadImage("Buttons/back5.png"))
+    ;
+
+  fiveB = true;
+  five.show();
+}
+
+
+
+
+
+
+
+void add5() {
+  if (fiveB) {
+    boolean b = true;
+    sixMsg = 0;
+    for (Artist a : likes) {
+      if (currentartist.name.equals(a.name) && currentartist.image.equals(a.image) && currentartist.id.equals(a.id)) {
+        b = false;
+        sixMsg = 1;
+      }
+    }
+    if (b) {
+      likes.add(currentartist);
+    }
+    state = 6;
+    update = true;
+  }
+}
+
+void back5() {
+  if (fiveB) {
+    state = 4;
+    update = true;
+  }
+}
+
+
+//display added/not message
+void six() {
+  hideAll();
+  int side = 35;
+  String SixMessage = "";
+  switch(sixMsg) {
+
+  case 0:
+    SixMessage = "Song Added!" + "\n" +
+      "Please add more artists or try the discover button!";
+    break;
+
+  case 1:
+    SixMessage = "Sorry, but the artist is already on your list." + "\n" +
+      "Please add more artists or try the discover button!";
+    break;
+
+  case 2:
+    SixMessage = "";
+    break;
+  }
+
+  six.addTextarea("SixMessage")
+    .setPosition(side, 75+(height/8))
+    .setSize(width-(side*2), height/4)
+    .setColor(color(255, 125, 0))
+    .setFont(DisplayFontL)
+    .setColorBackground(255)
+    .setColorForeground(color(255, 100))
+    .setText(SixMessage)
+    .hideScrollbar() 
+    ;
+
+
+
+  six.addButton("add6")
+    .setPosition(0, 610)
+    .setSize(150, 40)
+    .setImage(loadImage("Buttons/add6.png"))
+    ;
+
+  six.addButton("discover6")
+    .setPosition(0, 658)
+    .setSize(150, 40)
+    .setImage(loadImage("Buttons/discover6.png"))
+    ;
+
+  //toggle between pages
+  six.addButton("search")
+    .setPosition(width-150-150-10, 0)
+    .setSize(150, 40)
+    .setImage(loadImage("Buttons/search1.png"))
+    ;
+
+  six.addButton("myLists")
+    .setPosition(width-150, 0)
+    .setSize(150, 40)
+    .setImage(loadImage("Buttons/lists0.png"))
+    ;
+
+  sixB = true;
+  six.show();
+}
+
+void add6() {
+  if (sixB) {
+    state = 3;
+    update= true;
+  }
+}
+
+void discover6() {
+  if (sixB) {
+    state = 7;
+    update= true;
+  }
+}
+
+void seven() {
+  hideAll();
+  background(255);
+  loading = new Screen("Logos/LoadingLogo.png", "LOADING");
+  loading.pre();
+  seven.addCanvas(loading);
+  seven.show();
+}
+
+
+/////////////////////////////////////lists page and settings page/////////////////////////////////////////////
+
+void lists() {
+  hideAll();
+  list.setFont(allfontSS);
+
+  ArrayList<String> likesnames = new ArrayList<String>();
+  for (Artist a : likes) {
+    likesnames.add(a.name);
+  }
+
+  int buffer = 10 - likesnames.size();
+  for (int i = 0; i<buffer; i++) likesnames.add("");
+
+  ArrayList<String> discover2 = new ArrayList<String>();
+  for (Artist a : discover) {
+    discover2.add(a.name);
+  }
+
+  int buffer2 = 10 - discover2.size();
+  for (int i = 0; i<buffer2; i++) discover2.add("");
+  println(discover2.size());
+
+  Textarea ayl, ays;
+  ScrollableList ayl2, ays2;
+
+  ayl = list.addTextarea("Ayl")
+    .setPosition(100, 100)
+    .setSize(300, 40)
+    .setColor(color(255, 125, 0))
+    .setFont(DisplayFontM)
+    .setColorBackground(255)
+    .setColorForeground(color(255, 100))
+    .setText("Artists you Liked")
+    .hideScrollbar() 
+    ;
+
+  ayl2 = list.addScrollableList("Ayl2")
+    .setPosition(100, 135)
+    .setSize(200, 385)
+    .setBarHeight(0)
+    .setItemHeight(35)
+    .addItems(likesnames)
+    .setColorActive(color(255, 50, 0))
+    .setColorBackground(color(255, 90, 0))
+    .setColorForeground(color(255, 50, 0))
+    .setType(ControlP5.LIST)
+    .setBarVisible(false)
+    ;
+
+  ays = list.addTextarea("Ays")
+    .setPosition(350, 100)
+    .setSize(300, 40)
+    .setColor(color(255, 125, 0))
+    .setFont(DisplayFontM)
+    .setColorBackground(255)
+    .setColorForeground(color(255, 100))
+    .setText("Artists you selected")
+    .hideScrollbar() 
+    ;
+
+
+  ays2 = list.addScrollableList("Ays2")
+    .setPosition(350, 135)
+    .setSize(200, 385)
+    .setBarHeight(0)
+    .setItemHeight(35)
+    .addItems(discover2)
+    .setColorActive(color(255, 50, 0))
+    .setColorBackground(color(255, 90, 0))
+    .setColorForeground(color(255, 50, 0))
+    .setType(ControlP5.LIST)
+    .setBarVisible(false)
+    ;
+
+  //toggle between pages
+  list.addButton("search")
+    .setPosition(width-150-150-10, 0)
+    .setSize(150, 40)
+    .setImage(loadImage("Buttons/search0.png"))
+    ;
+
+  list.addButton("myLists")
+    .setPosition(width-150, 0)
+    .setSize(150, 40)
+    .setImage(loadImage("Buttons/lists1.png"))
+    ;
+
+  listB = true;
+  list.show();
+}
+
+void search() {
+
+  switch(state) {
+
+  case 99:
+    if (listB) {
+      state = pState;
+      update = true;
+    }
+    break;
+
+
+  case 3:
+    break;
+
+  case 6:
+    break;
+  }
+}
+
+
+void myLists() {
+  switch(state) {
+
+  case 99:
+    break;
+
+  case 3:
+    if (threeB) {
+      pState = 3;
+      state = 99;
+      update = true;
+    }
+    break;
+
+  case 6:
+    if (sixB) {
+      pState = 6;
+      state = 99;
+      update = true;
+    }
+    break;
+
+    //case 8:
+    //if(threeB);
+    //break;
+  }
+}
+
+///////////////////////////discovery//////////////////////////////
+
+void discover() {
+  int t1 = millis();
+  calculateTag();
+  topTags();
+  discovername = new ArrayList<String>();
+  d = new discoverThread[5];
+  int i = 0;
+  for (Map.Entry me : topFiveTags.entrySet() ) {
+    d[i] = new discoverThread((String)me.getKey());
+    d[i].start();
+    println("start " + i);
+    i++;
+  }
+
+  for (discoverThread d2 : d) {
+    try {
+      d2.join();
+    }
+    catch(Exception e) {
+    }
+  }
+
+  int t2 = millis();
+  println("Time for discovery(250 max):" + (t2-t1));
+}
+
+void calculateTag() {
+  tagOverall = new HashMap<String, Integer>();
+
+  for (Artist a : likes) {
+    //println(a.name);
+    for (Map.Entry me : a.getTags().entrySet()) {
+      if (tagOverall.containsKey(me.getKey())) {
+        int s = tagOverall.get(me.getKey());
+        tagOverall.put((String)me.getKey(), s+(Integer)me.getValue());
+      } else {
+        tagOverall.put((String)me.getKey(), (Integer)me.getValue());
+      }
+    }
+  }
+
+  for (Map.Entry me : tagOverall.entrySet()) {
+    int s2 = tagOverall.get(me.getKey())/likes.size();
+    tagOverall.put((String)me.getKey(), s2);
+  }
+
+  println("no of tags:" + tagOverall.size());
+}
+
+
+void topTags() {
+
+  ArrayList<miniTag> mt = new ArrayList<miniTag>(); 
+  ArrayList<miniTag> mt2 = new ArrayList<miniTag>(); 
+
+  for (Map.Entry me : tagOverall.entrySet()) {
+    miniTag m = new miniTag((String)me.getKey(), (int) me.getValue());
+    mt.add(m);
+  }
+
+
+  int no = 5;
+  if (mt.size()<= no) {
+    mt2 = mt;
+  } else {
+    for (int j = 0; j<no; j++) {
+      int big = mt.get(0).getCount();
+      int index = 0;
+      for (int i = 1; i<mt.size(); i++) {
+        if (mt.get(i).getCount() > big) {
+          big = mt.get(i).getCount();
+          index = i;
+        }
+      }
+
+      mt2.add(mt.get(index));
+      mt.remove(mt.get(index));
+    }
+  }
+
+  topFiveTags = new HashMap<String, Integer>();
+  for (miniTag mt2b : mt2) {
+    topFiveTags.put(mt2b.getName(), mt2b.getCount());
+  }
+
+  //for (Map.Entry me : topFiveTags.entrySet()) {
+  //  println(me.getKey() + " " + me.getValue());
+  //}
+}
+
+void loadDiscover(String s) {
+  //for (Map.Entry me : topFiveTags.entrySet()) {
+
+  String query = s;
+  String url = "http://ws.audioscrobbler.com/2.0/?method=tag.gettopartists&tag=" + query + "&api_key=5f89b5026e6206e9b74b93a117a4ef95&format=json&limit=201";
+
+  JSONObject json = loadJSONObject(url);
+
+  ArtistSize =50;
+  JSONArray json2 = json.getJSONObject("topartists").getJSONArray("artist");
+
+  for (int i = 0; i<ArtistSize; i++) {
+    String query2 = json2.getJSONObject(i).getString("name");
+    String query2b = "";
+    ////println("****");
+    ////println(artname);
+    try {
+      query2b = URLEncoder.encode(query2, "UTF-8");
+    }
+    catch(Exception e) {
+    }
+    String url2 = "http://ws.audioscrobbler.com/2.0/?method=artist.gettopTags&artist=" + query2b + "&api_key=5f89b5026e6206e9b74b93a117a4ef95&format=json&limit=201";
+    //println("Checking " +query2);
+    //println(url2);
+    JSONObject json3 = loadJSONObject(url2);
+    ////println(json3);
+    JSONArray json4 = json3.getJSONObject("toptags").getJSONArray("tag");
+    int TagSize;
+
+
+    TagSize = json4.size();
+    if (TagSize>5) TagSize = 5;
+
+    HashMap<String, Integer> h = new HashMap<String, Integer>();
+    for (int j=0; j<TagSize; j++) {
+
+      String name = json4.getJSONObject(j).getString("name");
+      int count = json4.getJSONObject(j).getInt("count");
+
+      h.put(name, count);
+    }
+    ////println("h size:"+ h.size());
+    //for (Map.Entry me3 : h.entrySet()) {
+    //}
+    ////println("tags added to h");
+
+    int counter = 0;
+    for (Map.Entry me2 : h.entrySet()) {
+      if (topFiveTags.containsKey(me2.getKey())) {
+        if ((Integer)me2.getValue() >= (Integer)topFiveTags.get(me2.getKey())) {
+          counter++;
+        }
+      }
+    }
+    ////println("Counter value:" + counter);
+    if (counter >=3) {
+      discovername.add(query2);
+      println(query2);
+    }
+  }
+  //}
+}

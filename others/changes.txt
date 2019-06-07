@@ -1,0 +1,7 @@
+HashMap<String, Integer> tagOverall= null;
+HashMap<String, Integer> topFiveTags= null;
+ArrayList<String> discovername= null;
+discoverThread[] d= null;
+VidThread[] v = null;
+ArrayList<Artist> likes= null;
+ArrayList<Artist> discover= null;
